@@ -1,44 +1,62 @@
 const mongoose = require("mongoose");
-const autoValidator = require("validator");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const userSchema = require("../schema/userSchema");
+const Task = require("../models/task");
 
-const User = mongoose.model("User", {
-  name: {
-    type: String,
-    required: [true, "Username is required"],
-    trim: true,
-  },
-  email: {
-    type: String,
-    validate: {
-      validator: (val) => {
-        return autoValidator.isEmail(val);
-      },
-      message: (props) => `${props.value} is not a valid email`,
-    },
-    required: [true, "Email is required"],
-    trim: true,
-    lowercase: true,
-  },
-  password: {
-    type: String,
-    minLength: [7, "Password must be greater than 6 characters"],
-    trim: true,
-    validate(val) {
-      if (val.toLowerCase().includes("password")) {
-        throw new Error("Password cannot contain 'password'");
-      }
-    },
-    required: [true, "Password is required"],
-  },
-  age: {
-    type: Number,
-    validate: {
-      validator: (val) => {
-        return val >= 0;
-      },
-      message: (props) => `${props.value} is not a vaid age!`,
-    },
-  },
+//Methods for document (User) uses methods
+userSchema.methods.generateAuthToken = async function () {
+  const user = this;
+
+  const token = jwt.sign({ _id: user._id.toString() }, "learnatfullspeed");
+  user.tokens = user.tokens.concat({ token });
+  await user.save();
+  return token;
+};
+
+userSchema.methods.toJSON = function () {
+  const user = this;
+  const userObj = user.toObject();
+
+  delete userObj.password;
+  delete userObj.tokens;
+  return userObj;
+};
+
+//Methods for model (User) uses statics
+userSchema.statics.findByCredentials = async (email, password) => {
+  const user = await User.findOne({ email: email });
+
+  if (!user) {
+    throw new Error("Unable to login");
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    throw new Error("Unable to login");
+  }
+
+  return user;
+};
+
+//Hash Password before Saving
+userSchema.pre("save", async function (next) {
+  const user = this;
+  if (user.isModified("password")) {
+    user.password = await bcrypt.hash(user.password, 8);
+  }
+  next();
 });
+
+//Delete user tasks when user is removed
+userSchema.pre("remove", async function (next) {
+  const user = this;
+  await Task.deleteMany({ owner: user._id });
+
+  next();
+});
+
+const User = mongoose.model("User", userSchema);
 
 module.exports = User;
