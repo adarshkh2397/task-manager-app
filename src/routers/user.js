@@ -14,19 +14,6 @@ router.get("/users/me", auth, async (req, res) => {
   res.send(req.user);
 });
 
-// router.get("/users/:id", async (req, res) => {
-//   const _id = req.params.id;
-//   try {
-//     const user = await User.findById(_id);
-//     if (!user) {
-//       return res.status(404).send("User not found!");
-//     }
-//     res.send(user);
-//   } catch (err) {
-//     res.status(500).send(err);
-//   }
-// });
-
 //SIGNUP
 router.post("/users", async (req, res) => {
   const user = new User(req.body);
@@ -91,12 +78,6 @@ router.patch("/users/me", auth, async (req, res) => {
   }
 
   try {
-    // const user = await User.findById(_id);
-
-    // if (!user) {
-    //   return res.status(404).send();
-    // }
-
     updates.forEach((update) => (req.user[update] = editData[update]));
 
     await req.user.save();
@@ -113,10 +94,6 @@ router.patch("/users/me", auth, async (req, res) => {
 
 router.delete("/users/me", auth, async (req, res) => {
   try {
-    // const user = await User.findByIdAndDelete(_id);
-    // if (!user) {
-    //   return res.status(404).send();
-    // }
     await req.user.remove();
     sendCancellationEmail(req.user.email, req.user.name);
     res.send(req.user);
@@ -160,6 +137,18 @@ router.delete("/users/me/avatar", auth, async (req, res) => {
     req.user.avatar = undefined;
     await req.user.save();
     res.send(req.user);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+router.get("/users/me/avatar", auth, async (req, res) => {
+  try {
+    if (!req.user || !req.user.avatar) {
+      throw new Error("No user avatar found");
+    }
+    res.set("Content-Type", "image/png");
+    res.send(req.user.avatar);
   } catch (err) {
     res.status(500).send(err);
   }
