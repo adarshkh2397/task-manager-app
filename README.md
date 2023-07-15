@@ -2,8 +2,6 @@
 
 This RESTful API project is built on [NodeJS](https://nodejs.org/en/about/) using [Express](https://expressjs.com/) as web gramework and [MongoDB](https://www.mongodb.com/) as document database.
 
-## Base URL
-[https://adkh-task-manager.herokuapp.com/](https://adkh-task-manager.herokuapp.com/)
 
 ## Services
 
